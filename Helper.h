@@ -1,4 +1,5 @@
 #include <phnt_windows.h>
+#define PHNT_VERSION PHNT_20H1
 #include <phnt.h>
 
 ULONG IsSuccess(
@@ -15,7 +16,11 @@ typedef enum _REQUEST_VERSION {
     REQUEST_VERSION_3
 } REQUEST_VERSION;
 
-REQUEST_VERSION RequestVersion = REQUEST_VERSION_UNKNOWN;
-ULONG MinimalRequestSize = 0;
+REQUEST_VERSION RequestVersion;
+ULONG MinimalRequestSize;
 
 void InitializeRequestVersion(void);
+
+// Extending POWER_REQUEST_TYPE
+#define PowerRequestPerfBoostRequired 4
+#define PowerRequestActiveLockScreenRequired 5

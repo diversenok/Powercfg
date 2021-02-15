@@ -159,6 +159,7 @@
     <ClCompile Include="PowercfgRequests.c" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".editorconfig" />
     <None Include="phnt\.gitattributes" />
     <None Include="phnt\LICENSE" />
     <None Include="phnt\README.md" />

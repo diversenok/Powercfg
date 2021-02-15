@@ -35,6 +35,7 @@
     <None Include="phnt\README.md">
       <Filter>phnt</Filter>
     </None>
+    <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="phnt\ntd3dkmt.h">

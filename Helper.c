@@ -1,6 +1,5 @@
 #include "Helper.h"
 #include <stdio.h>
-#define PHNT_VERSION PHNT_20H1
 #include "powerrequests.h"
 
 ULONG IsSuccess(_In_ NTSTATUS Status, _In_ LPCWSTR Where)
@@ -38,6 +37,9 @@ ULONG IsWoW64(void)
     return !!isWoW64;
 #endif
 }
+
+REQUEST_VERSION RequestVersion = REQUEST_VERSION_UNKNOWN;
+ULONG MinimalRequestSize = 0;
 
 void InitializeRequestVersion(void)
 {
