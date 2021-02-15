@@ -130,5 +130,8 @@
     <ClInclude Include="phnt\winsta.h">
       <Filter>phnt</Filter>
     </ClInclude>
+    <ClInclude Include="powerrequests.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
