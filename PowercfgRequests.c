@@ -1,5 +1,8 @@
+#include <phnt_windows.h>
+#include <phnt.h>
+#include <stdio.h>
 
 int main()
 {
-    return 0;
+    return STATUS_SUCCESS;
 }
