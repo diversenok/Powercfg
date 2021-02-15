@@ -1,43 +1,10 @@
 #include <phnt_windows.h>
+#define PHNT_VERSION PHNT_20H1
+
 #include <phnt.h>
 #include <stdio.h>
+#include "Helper.h"
 #include "powerrequests.h"
-
-ULONG IsSuccess(NTSTATUS Status, LPCWSTR Where)
-{
-    if (!NT_SUCCESS(Status))
-    {
-        wprintf_s(L"%s failed with 0x%0.8x", Where, Status);
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-ULONG IsWoW64()
-{
-#ifdef _WIN64
-    return FALSE;
-#else
-    ULONG_PTR isWoW64 = FALSE;
-
-    NTSTATUS status = NtQueryInformationProcess(
-        NtCurrentProcess(),
-        ProcessWow64Information,
-        &isWoW64,
-        sizeof(isWoW64),
-        NULL
-    );
-
-    if (!IsSuccess(status, L"WoW64 check"))
-        return TRUE; // Assume we are under WoW64
-
-    if (isWoW64)
-        wprintf_s(L"Cannot run under WoW64, use the 64-bit version instead.");
-
-    return !!isWoW64;
-#endif
-}
 
 int main()
 {
@@ -45,7 +12,7 @@ int main()
     if (IsWoW64())
         return 1;
 
-    NTSTATUS status;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
     PPOWER_REQUEST_LIST buffer = NULL;
     ULONG bufferLength = 4096;
 
@@ -92,9 +59,27 @@ int main()
     if (!IsSuccess(status, L"Querying power request list") || !buffer)
         return 1;
 
-    wprintf_s(L"Buffer size is %u\r\n", bufferLength);
-    wprintf_s(L"Found %u power requests", (ULONG)buffer->cElements);
+    if (buffer->cElements * sizeof(UINT_PTR) >= bufferLength)
+    {
+        wprintf_s(L"Parsing error: too many elements");
+        goto CLEANUP;
+    }
 
+    InitializeRequestVersion();
+
+    for (ULONG i = 0; i < buffer->cElements; i++)
+    {
+        if (buffer->OffsetsToRequests[i] >= (ULONG_PTR)bufferLength ||
+            buffer->OffsetsToRequests[i] + MinimalRequestSize > (ULONG_PTR)bufferLength)
+        {
+            wprintf_s(L"Parsing error: offset to request is too big");
+            goto CLEANUP;
+        }
+
+        PPOWER_REQUEST request = (PPOWER_REQUEST)((UINT_PTR)buffer + buffer->OffsetsToRequests[i]);
+    }
+
+CLEANUP:
     RtlFreeHeap(RtlGetCurrentPeb()->ProcessHeap, 0, buffer);
 
     return 0;

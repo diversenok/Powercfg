@@ -30,7 +30,7 @@ typedef struct _POWER_REQUEST {
             ULONG Reserved;
             ULONG RequiredDisplay;
             ULONG RequiredSystem;
-            ULONG RequiredAwaymode;
+            ULONG RequiredAwayMode;
             POWER_REQUEST_BODY Body;
         } V1;
 #endif
@@ -40,9 +40,9 @@ typedef struct _POWER_REQUEST {
             ULONG Reserved;
             ULONG RequiredDisplay;
             ULONG RequiredSystem;
-            ULONG RequiredAwaymode;
+            ULONG RequiredAwayMode;
             ULONG RequiredExecution;
-            ULONG RequiredPerfboost;
+            ULONG RequiredPerfBoost;
             POWER_REQUEST_BODY Body;
         } V2;
 #endif
@@ -52,9 +52,9 @@ typedef struct _POWER_REQUEST {
             ULONG Reserved;
             ULONG RequiredDisplay;
             ULONG RequiredSystem;
-            ULONG RequiredAwaymode;
+            ULONG RequiredAwayMode;
             ULONG RequiredExecution;
-            ULONG RequiredPerfboost;
+            ULONG RequiredPerfBoost;
             ULONG RequiredActiveLockScreen;
             POWER_REQUEST_BODY Body;
         } V3;

@@ -21,6 +21,9 @@
     <ClCompile Include="PowercfgRequests.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Helper.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="phnt\.gitattributes">
@@ -131,6 +134,9 @@
       <Filter>phnt</Filter>
     </ClInclude>
     <ClInclude Include="powerrequests.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
