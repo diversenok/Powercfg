@@ -1,18 +1,21 @@
 #include <phnt_windows.h>
 #include <phnt.h>
 
-typedef struct _POWER_REQUEST_LIST {
+typedef struct _POWER_REQUEST_LIST
+{
     ULONG_PTR cElements;
     ULONG_PTR OffsetsToRequests[ANYSIZE_ARRAY];
 } POWER_REQUEST_LIST, *PPOWER_REQUEST_LIST;
 
-typedef enum _POWER_REQUEST_ORIGIN {
+typedef enum _POWER_REQUEST_ORIGIN
+{
     POWER_REQUEST_ORIGIN_DRIVER = 0,
     POWER_REQUEST_ORIGIN_PROCESS = 1,
     POWER_REQUEST_ORIGIN_SERVICE = 2
 } POWER_REQUEST_ORIGIN;
 
-typedef struct _POWER_REQUEST_BODY {
+typedef struct _POWER_REQUEST_BODY
+{
     ULONG_PTR cbSize;
     POWER_REQUEST_ORIGIN Origin;
     ULONG_PTR OffsetToRequester;
@@ -41,7 +44,8 @@ typedef struct _POWER_REQUEST_BODY {
 #define POWER_REQUEST_SUPPORTED_MODES_V2 5
 #define POWER_REQUEST_SUPPORTED_MODES_V3 6
 
-typedef struct _POWER_REQUEST {
+typedef struct _POWER_REQUEST
+{
     union
     {
         struct
@@ -68,3 +72,19 @@ typedef struct _POWER_REQUEST {
 #endif
     };
 } POWER_REQUEST, *PPOWER_REQUEST;
+
+typedef struct _POWER_REQUEST_CONTEXT_INFORMATION
+{
+    ULONG Flags; // POWER_REQUEST_CONTEXT_SIMPLE_STRING or POWER_REQUEST_CONTEXT_DETAILED_STRING
+    union
+    {
+        struct
+        {
+            ULONG_PTR OffsetToModuleName;
+            WORD LocalizedReasonId;
+            ULONG ReasonStringCount;
+            ULONG_PTR OffsetToReasonStrings;
+        } Detailed;
+        ULONG_PTR OffsetToSimpleString;
+    };
+} POWER_REQUEST_CONTEXT_INFORMATION, * PPOWER_REQUEST_CONTEXT_INFORMATION;

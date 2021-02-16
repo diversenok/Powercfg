@@ -92,7 +92,7 @@ PQUERY_TAG_INFORMATION I_QueryTagInformationLoader()
             hAdvApi32,
             &functionName,
             0,
-            &I_QueryTagInformationCache
+            (PVOID *)&I_QueryTagInformationCache
         );
 
         if (!NT_SUCCESS(status))

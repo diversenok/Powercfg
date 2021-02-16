@@ -15,7 +15,7 @@ ULONG DisplayRequest(
     PPOWER_REQUEST_BODY requestBody;
 
     // Determine if the request matches the type
-    if (RequestType < 0 || RequestType >= SupportedModeCount || !Request->V3.Requires[RequestType])
+    if ((ULONG)RequestType >= SupportedModeCount || !Request->V3.Requires[RequestType])
         return FALSE;
 
     // The location of the request's body depends on the supported modes
@@ -65,11 +65,11 @@ ULONG DisplayRequest(
     if (requestBody->OffsetToRequester && requestBody->OffsetToRequester < requestBody->cbSize)
         requesterName = (PCWSTR)((UINT_PTR)requestBody + requestBody->OffsetToRequester);
 
-    // For drivers, locate the full name
+    // For drivers, locate their full names
     if (requestBody->Origin == POWER_REQUEST_ORIGIN_DRIVER && requestBody->OffsetToDriverName != 0)
         requesterDetails = (PCWSTR)((UINT_PTR)requestBody + requestBody->OffsetToDriverName);
 
-    // For services, convert the tag to the name
+    // For services, convert their tags to names
     if (requestBody->Origin == POWER_REQUEST_ORIGIN_SERVICE)
     {
         serviceInfo.InParams.dwPid = requestBody->ProcessId;
@@ -86,6 +86,24 @@ ULONG DisplayRequest(
         wprintf_s(L"%s (%s)\r\n", requesterName, requesterDetails);
     else
         wprintf_s(L"%s\r\n", requesterName);
+
+    // The context section stores the reason for a request
+    if (requestBody->OffsetToContext)
+    {
+        PCWSTR requestReason = NULL;
+        PPOWER_REQUEST_CONTEXT_INFORMATION context =
+            (PPOWER_REQUEST_CONTEXT)((UINT_PTR)requestBody + requestBody->OffsetToContext);
+        
+        if (context->Flags & POWER_REQUEST_CONTEXT_SIMPLE_STRING)
+            requestReason = (PCWSTR)((UINT_PTR)context + context->OffsetToSimpleString);
+
+        if (requestReason)
+            wprintf_s(L"%s\r\n", requestReason);
+    }
+
+    // Clean-up
+    if (serviceInfo.OutParams.pszName)
+        LocalFree(serviceInfo.OutParams.pszName);
 
     return TRUE;
 }
