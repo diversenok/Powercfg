@@ -73,7 +73,7 @@ typedef struct _POWER_REQUEST
     };
 } POWER_REQUEST, *PPOWER_REQUEST;
 
-typedef struct _POWER_REQUEST_CONTEXT_INFORMATION
+typedef struct _POWER_REQUEST_CONTEXT_INFO
 {
     ULONG Flags; // POWER_REQUEST_CONTEXT_SIMPLE_STRING or POWER_REQUEST_CONTEXT_DETAILED_STRING
     union
@@ -81,10 +81,10 @@ typedef struct _POWER_REQUEST_CONTEXT_INFORMATION
         struct
         {
             ULONG_PTR OffsetToModuleName;
-            WORD LocalizedReasonId;
+            USHORT LocalizedReasonId;
             ULONG ReasonStringCount;
             ULONG_PTR OffsetToReasonStrings;
         } Detailed;
         ULONG_PTR OffsetToSimpleString;
     };
-} POWER_REQUEST_CONTEXT_INFORMATION, * PPOWER_REQUEST_CONTEXT_INFORMATION;
+} POWER_REQUEST_CONTEXT_INFO, *PPOWER_REQUEST_CONTEXT_INFO;

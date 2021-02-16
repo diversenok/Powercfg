@@ -63,19 +63,19 @@ ULONG DisplayRequest(
 
     // Retrieve general requester information
     if (requestBody->OffsetToRequester && requestBody->OffsetToRequester < requestBody->cbSize)
-        requesterName = (PCWSTR)((UINT_PTR)requestBody + requestBody->OffsetToRequester);
+        requesterName = (PCWSTR)RtlOffsetToPointer(requestBody, requestBody->OffsetToRequester);
 
     // For drivers, locate their full names
     if (requestBody->Origin == POWER_REQUEST_ORIGIN_DRIVER && requestBody->OffsetToDriverName != 0)
-        requesterDetails = (PCWSTR)((UINT_PTR)requestBody + requestBody->OffsetToDriverName);
+        requesterDetails = (PCWSTR)RtlOffsetToPointer(requestBody, requestBody->OffsetToDriverName);
 
     // For services, convert their tags to names
     if (requestBody->Origin == POWER_REQUEST_ORIGIN_SERVICE)
     {
+        PQUERY_TAG_INFORMATION I_QueryTagInformation = I_QueryTagInformationLoader();
+
         serviceInfo.InParams.dwPid = requestBody->ProcessId;
         serviceInfo.InParams.dwTag = requestBody->ServiceTag;
-
-        PQUERY_TAG_INFORMATION I_QueryTagInformation = I_QueryTagInformationLoader();
 
         if (I_QueryTagInformation &&
             I_QueryTagInformation(NULL, eTagInfoLevelNameFromTag, &serviceInfo) == ERROR_SUCCESS)
@@ -87,18 +87,47 @@ ULONG DisplayRequest(
     else
         wprintf_s(L"%s\r\n", requesterName);
 
-    // The context section stores the reason for a request
+    // The context section stores the reason of the request
     if (requestBody->OffsetToContext)
     {
-        PCWSTR requestReason = NULL;
-        PPOWER_REQUEST_CONTEXT_INFORMATION context =
-            (PPOWER_REQUEST_CONTEXT)((UINT_PTR)requestBody + requestBody->OffsetToContext);
+        PPOWER_REQUEST_CONTEXT_INFO context =
+            (PPOWER_REQUEST_CONTEXT_INFO)RtlOffsetToPointer(requestBody, requestBody->OffsetToContext);
         
         if (context->Flags & POWER_REQUEST_CONTEXT_SIMPLE_STRING)
-            requestReason = (PCWSTR)((UINT_PTR)context + context->OffsetToSimpleString);
+        {
+            // Simple strings are packed into the buffer
 
-        if (requestReason)
-            wprintf_s(L"%s\r\n", requestReason);
+            wprintf_s(L"%s\r\n", (PCWCHAR)RtlOffsetToPointer(context, context->OffsetToSimpleString));
+        }
+        else if (context->Flags & POWER_REQUEST_CONTEXT_DETAILED_STRING)
+        {
+            // Detailed strings are located in an external module, load them
+
+            HMODULE hModule = LoadLibraryExW(
+                (PCWSTR)RtlOffsetToPointer(context, context->Detailed.OffsetToModuleName),
+                NULL,
+                LOAD_LIBRARY_AS_DATAFILE
+            );
+
+            if (hModule)
+            {
+                PCWSTR reasonString;
+                int reasonLength = LoadStringW(
+                    hModule,
+                    context->Detailed.LocalizedReasonId,
+                    (LPWSTR)&reasonString,
+                    0
+                );
+
+                // TODO: substitute caller-supplied parameters
+
+                if (reasonLength)
+                    wprintf_s(L"%s\r\n", reasonString);
+
+                // Clean-up
+                FreeLibrary(hModule);
+            }
+        }
     }
 
     // Clean-up
@@ -115,21 +144,16 @@ void DisplayRequests(
     _In_ LPCWSTR Caption
 )
 {
-    wprintf_s(Caption);
+    wprintf_s(L"[%s]:\r\n", Caption);
 
     ULONG found = FALSE;
 
     for (ULONG i = 0; i < RequestList->cElements; i++)
     {
-        if (RequestList->OffsetsToRequests[i] > (ULONG_PTR)RequestListSize)
-        {
-            wprintf_s(L"Parsing error: offset to request is too big\r\n");
-            return;
-        }
-
-        PPOWER_REQUEST request = (PPOWER_REQUEST)((UINT_PTR)RequestList + RequestList->OffsetsToRequests[i]);
-
-        found = DisplayRequest(request, Condition) || found;
+        found = DisplayRequest(
+            (PPOWER_REQUEST)RtlOffsetToPointer(RequestList, RequestList->OffsetsToRequests[i]),
+            Condition
+        ) || found;
     }
 
     if (!found)
@@ -144,8 +168,8 @@ int main()
     if (IsWoW64())
         return 1;
 
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
-    PPOWER_REQUEST_LIST buffer = NULL;
+    NTSTATUS status;
+    PPOWER_REQUEST_LIST buffer;
     ULONG bufferLength = 4096;
 
     do
@@ -185,22 +209,15 @@ int main()
     if (!IsSuccess(status, L"Querying power request list") || !buffer)
         return 1;
 
-    if (buffer->cElements * sizeof(UINT_PTR) >= bufferLength)
-    {
-        wprintf_s(L"Parsing error: too many elements");
-        goto CLEANUP;
-    }
-
     InitializeSupportedModeCount();
 
-    DisplayRequests(buffer, bufferLength, PowerRequestDisplayRequired, L"DISPLAY:\r\n");
-    DisplayRequests(buffer, bufferLength, PowerRequestSystemRequired, L"SYSTEM:\r\n");
-    DisplayRequests(buffer, bufferLength, PowerRequestAwayModeRequired, L"AWAYMODE:\r\n");
-    DisplayRequests(buffer, bufferLength, PowerRequestExecutionRequired, L"EXECUTION:\r\n");
-    DisplayRequests(buffer, bufferLength, PowerRequestPerfBoostRequired, L"PERFBOOST:\r\n");
-    DisplayRequests(buffer, bufferLength, PowerRequestActiveLockScreenRequired, L"ACTIVELOCKSCREEN:\r\n");
+    DisplayRequests(buffer, bufferLength, PowerRequestDisplayRequired, L"DISPLAY");
+    DisplayRequests(buffer, bufferLength, PowerRequestSystemRequired, L"SYSTEM");
+    DisplayRequests(buffer, bufferLength, PowerRequestAwayModeRequired, L"AWAYMODE");
+    DisplayRequests(buffer, bufferLength, PowerRequestExecutionRequired, L"EXECUTION");
+    DisplayRequests(buffer, bufferLength, PowerRequestPerfBoostRequired, L"PERFBOOST");
+    DisplayRequests(buffer, bufferLength, PowerRequestActiveLockScreenRequired, L"ACTIVELOCKSCREEN");
 
-CLEANUP:
     RtlFreeHeap(RtlGetCurrentPeb()->ProcessHeap, 0, buffer);
 
     return 0;
