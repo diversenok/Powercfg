@@ -155,8 +155,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Helper.c" />
-    <ClCompile Include="PowercfgRequests.c" />
+    <ClCompile Include="Sources\helper.c" />
+    <ClCompile Include="Sources\PowercfgRequests.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
@@ -165,7 +165,8 @@
     <None Include="phnt\README.md" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Helper.h" />
+    <ClInclude Include="Sources\helper.h" />
+    <ClInclude Include="Sources\power_requests.h" />
     <ClInclude Include="phnt\ntd3dkmt.h" />
     <ClInclude Include="phnt\ntdbg.h" />
     <ClInclude Include="phnt\ntexapi.h" />
@@ -198,7 +199,6 @@
     <ClInclude Include="phnt\phnt_windows.h" />
     <ClInclude Include="phnt\subprocesstag.h" />
     <ClInclude Include="phnt\winsta.h" />
-    <ClInclude Include="powerrequests.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

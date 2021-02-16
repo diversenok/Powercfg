@@ -4,8 +4,8 @@
 #include <phnt.h>
 #include <subprocesstag.h>
 #include <stdio.h>
-#include "Helper.h"
-#include "powerrequests.h"
+#include "helper.h"
+#include "power_requests.h"
 
 ULONG DisplayRequest(
     _In_ PPOWER_REQUEST Request,
@@ -62,11 +62,11 @@ ULONG DisplayRequest(
     TAG_INFO_NAME_FROM_TAG serviceInfo = { 0 };
 
     // Retrieve general requester information
-    if (requestBody->OffsetToRequester && requestBody->OffsetToRequester < requestBody->cbSize)
+    if (requestBody->OffsetToRequester)
         requesterName = (PCWSTR)RtlOffsetToPointer(requestBody, requestBody->OffsetToRequester);
 
     // For drivers, locate their full names
-    if (requestBody->Origin == POWER_REQUEST_ORIGIN_DRIVER && requestBody->OffsetToDriverName != 0)
+    if (requestBody->Origin == POWER_REQUEST_ORIGIN_DRIVER && requestBody->OffsetToDriverName)
         requesterDetails = (PCWSTR)RtlOffsetToPointer(requestBody, requestBody->OffsetToDriverName);
 
     // For services, convert their tags to names
@@ -101,7 +101,7 @@ ULONG DisplayRequest(
         }
         else if (context->Flags & POWER_REQUEST_CONTEXT_DETAILED_STRING)
         {
-            // Detailed strings are located in an external module, load them
+            // Detailed strings are located in an external module
 
             HMODULE hModule = LoadLibraryExW(
                 (PCWSTR)RtlOffsetToPointer(context, context->Detailed.OffsetToModuleName),
@@ -138,13 +138,12 @@ ULONG DisplayRequest(
 }
 
 void DisplayRequests(
-    _In_reads_bytes_(RequestListSize) PPOWER_REQUEST_LIST RequestList,
-    _In_ ULONG RequestListSize,
+    _In_ PPOWER_REQUEST_LIST RequestList,
     _In_ POWER_REQUEST_TYPE Condition,
     _In_ LPCWSTR Caption
 )
 {
-    wprintf_s(L"[%s]:\r\n", Caption);
+    wprintf_s(L"%s:\r\n", Caption);
 
     ULONG found = FALSE;
 
@@ -211,12 +210,12 @@ int main()
 
     InitializeSupportedModeCount();
 
-    DisplayRequests(buffer, bufferLength, PowerRequestDisplayRequired, L"DISPLAY");
-    DisplayRequests(buffer, bufferLength, PowerRequestSystemRequired, L"SYSTEM");
-    DisplayRequests(buffer, bufferLength, PowerRequestAwayModeRequired, L"AWAYMODE");
-    DisplayRequests(buffer, bufferLength, PowerRequestExecutionRequired, L"EXECUTION");
-    DisplayRequests(buffer, bufferLength, PowerRequestPerfBoostRequired, L"PERFBOOST");
-    DisplayRequests(buffer, bufferLength, PowerRequestActiveLockScreenRequired, L"ACTIVELOCKSCREEN");
+    DisplayRequests(buffer, PowerRequestDisplayRequired, L"DISPLAY");
+    DisplayRequests(buffer, PowerRequestSystemRequired, L"SYSTEM");
+    DisplayRequests(buffer, PowerRequestAwayModeRequired, L"AWAYMODE");
+    DisplayRequests(buffer, PowerRequestExecutionRequired, L"EXECUTION");
+    DisplayRequests(buffer, PowerRequestPerfBoostRequired, L"PERFBOOST");
+    DisplayRequests(buffer, PowerRequestActiveLockScreenRequired, L"ACTIVELOCKSCREEN");
 
     RtlFreeHeap(RtlGetCurrentPeb()->ProcessHeap, 0, buffer);
 

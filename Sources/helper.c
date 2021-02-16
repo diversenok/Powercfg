@@ -1,6 +1,6 @@
-#include "Helper.h"
+#include "helper.h"
 #include <stdio.h>
-#include "powerrequests.h"
+#include "power_requests.h"
 
 ULONG IsSuccess(_In_ NTSTATUS Status, _In_ LPCWSTR Where)
 {

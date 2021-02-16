@@ -18,10 +18,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="PowercfgRequests.c">
+    <ClCompile Include="Sources\PowercfgRequests.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Helper.c">
+    <ClCompile Include="Sources\helper.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -134,10 +134,10 @@
     <ClInclude Include="phnt\winsta.h">
       <Filter>phnt</Filter>
     </ClInclude>
-    <ClInclude Include="powerrequests.h">
+    <ClInclude Include="Sources\helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Helper.h">
+    <ClInclude Include="Sources\power_requests.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
