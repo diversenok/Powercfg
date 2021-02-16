@@ -16,33 +16,45 @@ typedef struct _POWER_REQUEST_BODY {
     ULONG_PTR cbSize;
     POWER_REQUEST_ORIGIN Origin;
     ULONG_PTR OffsetToRequester;
-    ULONG ProcessId;
-    ULONG Unknown;
+    union
+    {
+        struct
+        {
+            ULONG ProcessId;
+            ULONG ServiceTag;
+        };
+        ULONG_PTR OffsetToDriverName;
+    };    
     ULONG_PTR OffsetToContext;
 } POWER_REQUEST_BODY, *PPOWER_REQUEST_BODY;
+
+// POWER_REQUEST_TYPE
+// Note: We don't use an enum since it conflicts with the Windows SDK.
+#define PowerRequestDisplayRequired 0
+#define PowerRequestSystemRequired 1
+#define PowerRequestAwayModeRequired 2
+#define PowerRequestExecutionRequired 3        // Windows 8.1+ (maybe Windows 8?)
+#define PowerRequestPerfBoostRequired 4        // Windows 8.1+ (maybe Windows 8?)
+#define PowerRequestActiveLockScreenRequired 5 // Windows 10 RS1+
+
+#define POWER_REQUEST_SUPPORTED_MODES_V1 3
+#define POWER_REQUEST_SUPPORTED_MODES_V2 5
+#define POWER_REQUEST_SUPPORTED_MODES_V3 6
 
 typedef struct _POWER_REQUEST {
     union
     {
-#if (PHNT_VERSION >= PHNT_WIN7)
         struct
         {
             ULONG Reserved;
-            ULONG RequiredDisplay;
-            ULONG RequiredSystem;
-            ULONG RequiredAwayMode;
+            ULONG Requires[POWER_REQUEST_SUPPORTED_MODES_V1];
             POWER_REQUEST_BODY Body;
         } V1;
-#endif
-#if (PHNT_VERSION >= PHNT_WINBLUE) // Or maybe Windows 8
+#if (PHNT_VERSION >= PHNT_WINBLUE)
         struct
         {
             ULONG Reserved;
-            ULONG RequiredDisplay;
-            ULONG RequiredSystem;
-            ULONG RequiredAwayMode;
-            ULONG RequiredExecution;
-            ULONG RequiredPerfBoost;
+            ULONG Requires[POWER_REQUEST_SUPPORTED_MODES_V2];
             POWER_REQUEST_BODY Body;
         } V2;
 #endif
@@ -50,12 +62,7 @@ typedef struct _POWER_REQUEST {
         struct
         {
             ULONG Reserved;
-            ULONG RequiredDisplay;
-            ULONG RequiredSystem;
-            ULONG RequiredAwayMode;
-            ULONG RequiredExecution;
-            ULONG RequiredPerfBoost;
-            ULONG RequiredActiveLockScreen;
+            ULONG Requires[POWER_REQUEST_SUPPORTED_MODES_V3];
             POWER_REQUEST_BODY Body;
         } V3;
 #endif

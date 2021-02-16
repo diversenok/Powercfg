@@ -6,58 +6,29 @@
 #include "Helper.h"
 #include "powerrequests.h"
 
-ULONG ShouldDisplay(
-    _In_ PPOWER_REQUEST Request,
-    _In_ POWER_REQUEST_TYPE Condition
-)
-{
-    switch (Condition)
-    {
-        case PowerRequestDisplayRequired:
-            return Request->V1.RequiredDisplay;
-
-        case PowerRequestSystemRequired:
-            return Request->V1.RequiredSystem;
-
-        case PowerRequestAwayModeRequired:
-            return Request->V1.RequiredAwayMode;
-
-        case PowerRequestExecutionRequired:
-            return RequestVersion >= REQUEST_VERSION_2 && Request->V2.RequiredExecution;
-
-        case PowerRequestPerfBoostRequired:
-            return RequestVersion >= REQUEST_VERSION_2 && Request->V2.RequiredPerfBoost;
-
-        case PowerRequestActiveLockScreenRequired:
-            return RequestVersion >= REQUEST_VERSION_3 && Request->V3.RequiredActiveLockScreen;
-
-        default:
-            return FALSE;
-    }
-}
-
 ULONG DisplayRequest(
     _In_ PPOWER_REQUEST Request,
-    _In_ POWER_REQUEST_TYPE Condition
+    _In_ POWER_REQUEST_TYPE RequestType
 )
 {
-    if (!ShouldDisplay(Request, Condition))
-        return FALSE;
-
     PPOWER_REQUEST_BODY requestBody;
 
-    // Determine the structure based on the current version of Windows
-    switch (RequestVersion)
+    // Determine if the request matches the type
+    if (RequestType < 0 || RequestType >= SupportedModeCount || !Request->V3.Requires[RequestType])
+        return FALSE;
+
+    // The location of the request's body depends on the supported modes
+    switch (SupportedModeCount)
     {
-        case REQUEST_VERSION_1:
+        case POWER_REQUEST_SUPPORTED_MODES_V1:
             requestBody = &Request->V1.Body;
             break;
 
-        case REQUEST_VERSION_2:
+        case POWER_REQUEST_SUPPORTED_MODES_V2:
             requestBody = &Request->V2.Body;
             break;
 
-        case REQUEST_VERSION_3:
+        case POWER_REQUEST_SUPPORTED_MODES_V3:
             requestBody = &Request->V3.Body;
             break;
 
@@ -65,52 +36,71 @@ ULONG DisplayRequest(
             return FALSE;
     }
 
-    // Print the requester type
+    // Print the requester kind
     switch (requestBody->Origin)
     {
         case POWER_REQUEST_ORIGIN_DRIVER:
             wprintf_s(L"[DRIVER] ");
             break;
+
         case POWER_REQUEST_ORIGIN_PROCESS:
             wprintf_s(L"[PROCESS (PID %d)] ", requestBody->ProcessId);
             break;
+
         case POWER_REQUEST_ORIGIN_SERVICE:
             wprintf_s(L"[SERVICE (PID %d)] ", requestBody->ProcessId);
             break;
+
         default:
             wprintf_s(L"[UNKNOWN] ");
             break;
     }
 
-    wprintf_s(L"\r\n");
+    PCWSTR requesterName = L"Legacy Kernel Caller";
+    PCWSTR requesterDetails = NULL;
+
+    // Retrieve general requester information
+    if (requestBody->OffsetToRequester && requestBody->OffsetToRequester < requestBody->cbSize)
+        requesterName = (PCWSTR)((UINT_PTR)requestBody + requestBody->OffsetToRequester);
+
+    // For drivers, locate the full name
+    if (requestBody->Origin == POWER_REQUEST_ORIGIN_DRIVER && requestBody->OffsetToDriverName != 0)
+        requesterDetails = (PCWSTR)((UINT_PTR)requestBody + requestBody->OffsetToDriverName);
+
+    if (requesterDetails)
+        wprintf_s(L"%s (%s)\r\n", requesterName, requesterDetails);
+    else
+        wprintf_s(L"%s\r\n", requesterName);
+
+    return TRUE;
 }
 
 void DisplayRequests(
-    _In_ PPOWER_REQUEST_LIST buffer,
-    _In_ ULONG bufferLength,
+    _In_reads_bytes_(RequestListSize) PPOWER_REQUEST_LIST RequestList,
+    _In_ ULONG RequestListSize,
     _In_ POWER_REQUEST_TYPE Condition,
     _In_ LPCWSTR Caption
 )
 {
     wprintf_s(Caption);
 
-    ULONG Count = 0;
+    ULONG found = FALSE;
 
-    for (ULONG i = 0; i < buffer->cElements; i++)
+    for (ULONG i = 0; i < RequestList->cElements; i++)
     {
-        if (buffer->OffsetsToRequests[i] + MinimalRequestSize > (ULONG_PTR)bufferLength)
+        if (RequestList->OffsetsToRequests[i] > (ULONG_PTR)RequestListSize)
         {
             wprintf_s(L"Parsing error: offset to request is too big\r\n");
             return;
         }
 
-        PPOWER_REQUEST request = (PPOWER_REQUEST)((UINT_PTR)buffer + buffer->OffsetsToRequests[i]);
+        PPOWER_REQUEST request = (PPOWER_REQUEST)((UINT_PTR)RequestList + RequestList->OffsetsToRequests[i]);
 
         if (DisplayRequest(request, Condition))
-            Count++;
+            found = TRUE;
     }
 
-    if (Count == 0)
+    if (!found)
         wprintf_s(L"None.\r\n");
 
     wprintf_s(L"\r\n");
@@ -175,7 +165,7 @@ int main()
         goto CLEANUP;
     }
 
-    InitializeRequestVersion();
+    InitializeSupportedModeCount();
 
     DisplayRequests(buffer, bufferLength, PowerRequestDisplayRequired, L"DISPLAY:\r\n");
     DisplayRequests(buffer, bufferLength, PowerRequestSystemRequired, L"SYSTEM:\r\n");

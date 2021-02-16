@@ -38,10 +38,9 @@ ULONG IsWoW64(void)
 #endif
 }
 
-REQUEST_VERSION RequestVersion = REQUEST_VERSION_UNKNOWN;
-ULONG MinimalRequestSize = 0;
+ULONG SupportedModeCount = 0;
 
-void InitializeRequestVersion(void)
+void InitializeSupportedModeCount(void)
 {
     POWER_REQUEST request;
     RTL_OSVERSIONINFOEXW versionInfo = { sizeof(RTL_OSVERSIONINFOEXW) };
@@ -54,20 +53,17 @@ void InitializeRequestVersion(void)
             (versionInfo.dwMinorVersion == 0 && versionInfo.dwBuildNumber >= 14393))))
     {
         // Windows 10 RS1+
-        RequestVersion = REQUEST_VERSION_3;
-        MinimalRequestSize = sizeof(request.V3);
+        SupportedModeCount = POWER_REQUEST_SUPPORTED_MODES_V3;
     }
     else if (versionInfo.dwMajorVersion > 6 ||
         (versionInfo.dwMajorVersion == 6 && versionInfo.dwMinorVersion >= 3))
     {
         // Windows 8.1+
-        RequestVersion = REQUEST_VERSION_2;
-        MinimalRequestSize = sizeof(request.V2);
+        SupportedModeCount = POWER_REQUEST_SUPPORTED_MODES_V2;
     }
     else
     {
         // Windows 7+
-        RequestVersion = REQUEST_VERSION_1;
-        MinimalRequestSize = sizeof(request.V1);
+        SupportedModeCount = POWER_REQUEST_SUPPORTED_MODES_V1;
     }
 }
