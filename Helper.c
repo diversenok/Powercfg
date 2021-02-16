@@ -67,3 +67,39 @@ void InitializeSupportedModeCount(void)
         SupportedModeCount = POWER_REQUEST_SUPPORTED_MODES_V1;
     }
 }
+
+PQUERY_TAG_INFORMATION I_QueryTagInformationLoader()
+{
+    static PQUERY_TAG_INFORMATION I_QueryTagInformationCache = NULL;
+
+    // Use the cached address
+    if (I_QueryTagInformationCache)
+        return I_QueryTagInformationCache;
+
+    UNICODE_STRING dllName;
+    PVOID hAdvApi32;
+
+    RtlInitUnicodeString(&dllName, L"advapi32.dll");
+
+    if (NT_SUCCESS(LdrLoadDll(NULL, NULL, &dllName, &hAdvApi32)))
+    {
+        ANSI_STRING functionName;
+
+        RtlInitAnsiString(&functionName, "I_QueryTagInformation");
+
+        // Locate the function
+        NTSTATUS status = LdrGetProcedureAddress(
+            hAdvApi32,
+            &functionName,
+            0,
+            &I_QueryTagInformationCache
+        );
+
+        if (!NT_SUCCESS(status))
+            I_QueryTagInformationCache = NULL;
+
+        // Do not unload the DLL
+    }
+
+    return I_QueryTagInformationCache;
+}

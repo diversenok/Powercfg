@@ -2,6 +2,7 @@
 #define PHNT_VERSION PHNT_20H1
 
 #include <phnt.h>
+#include <subprocesstag.h>
 #include <stdio.h>
 #include "Helper.h"
 #include "powerrequests.h"
@@ -58,6 +59,7 @@ ULONG DisplayRequest(
 
     PCWSTR requesterName = L"Legacy Kernel Caller";
     PCWSTR requesterDetails = NULL;
+    TAG_INFO_NAME_FROM_TAG serviceInfo = { 0 };
 
     // Retrieve general requester information
     if (requestBody->OffsetToRequester && requestBody->OffsetToRequester < requestBody->cbSize)
@@ -66,6 +68,19 @@ ULONG DisplayRequest(
     // For drivers, locate the full name
     if (requestBody->Origin == POWER_REQUEST_ORIGIN_DRIVER && requestBody->OffsetToDriverName != 0)
         requesterDetails = (PCWSTR)((UINT_PTR)requestBody + requestBody->OffsetToDriverName);
+
+    // For services, convert the tag to the name
+    if (requestBody->Origin == POWER_REQUEST_ORIGIN_SERVICE)
+    {
+        serviceInfo.InParams.dwPid = requestBody->ProcessId;
+        serviceInfo.InParams.dwTag = requestBody->ServiceTag;
+
+        PQUERY_TAG_INFORMATION I_QueryTagInformation = I_QueryTagInformationLoader();
+
+        if (I_QueryTagInformation &&
+            I_QueryTagInformation(NULL, eTagInfoLevelNameFromTag, &serviceInfo) == ERROR_SUCCESS)
+            requesterDetails = serviceInfo.OutParams.pszName;
+    }
 
     if (requesterDetails)
         wprintf_s(L"%s (%s)\r\n", requesterName, requesterDetails);
@@ -96,8 +111,7 @@ void DisplayRequests(
 
         PPOWER_REQUEST request = (PPOWER_REQUEST)((UINT_PTR)RequestList + RequestList->OffsetsToRequests[i]);
 
-        if (DisplayRequest(request, Condition))
-            found = TRUE;
+        found = DisplayRequest(request, Condition) || found;
     }
 
     if (!found)
@@ -146,12 +160,6 @@ int main()
 
             // Prepare for expansion
             bufferLength += 4096;
-
-            if (bufferLength >= 256 * 1024 * 1024)
-            {
-                wprintf_s(L"Required buffer is too big.");
-                return 1;
-            }
         }
 
     } while (status == STATUS_BUFFER_TOO_SMALL);
