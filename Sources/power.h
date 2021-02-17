@@ -1,6 +1,25 @@
 #include <phnt_windows.h>
 #include <phnt.h>
 
+#define  POWER_REQUEST_CONTEXT_NOT_SPECIFIED DIAGNOSTIC_REASON_NOT_SPECIFIED
+
+typedef struct _POWER_REQUEST_CONTEXT_IN
+{
+    ULONG Version;
+    ULONG Flags;
+    union
+    {
+        struct
+        {
+            UNICODE_STRING LocalizedReasonModule;
+            USHORT LocalizedReasonId;
+            ULONG ReasonStringCount;
+            PUNICODE_STRING ReasonStrings[ANYSIZE_ARRAY];
+        } Detailed;
+        UNICODE_STRING SimpleReasonString;
+    };
+} POWER_REQUEST_CONTEXT_IN, *PPOWER_REQUEST_CREATE;
+
 typedef struct _POWER_REQUEST_LIST
 {
     ULONG_PTR cElements;
@@ -89,7 +108,7 @@ typedef struct _POWER_REQUEST
 
 typedef struct _POWER_REQUEST_CONTEXT_OUT
 {
-    ULONG Flags; // POWER_REQUEST_CONTEXT_SIMPLE_STRING or POWER_REQUEST_CONTEXT_DETAILED_STRING
+    ULONG Flags;
     union
     {
         struct
