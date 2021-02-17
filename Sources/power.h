@@ -36,25 +36,31 @@ typedef struct _POWER_REQUEST_BODY
 #define PowerRequestDisplayRequired 0
 #define PowerRequestSystemRequired 1
 #define PowerRequestAwayModeRequired 2
-#define PowerRequestExecutionRequired 3        // Windows 8.1+ (maybe Windows 8?)
-#define PowerRequestPerfBoostRequired 4        // Windows 8.1+ (maybe Windows 8?)
-#define PowerRequestActiveLockScreenRequired 5 // Windows 10 RS1+
+#define PowerRequestExecutionRequired 3        // Windows 8+
+#define PowerRequestPerfBoostRequired 4        // Windows 8+
+#define PowerRequestActiveLockScreenRequired 5 // Windows 10 RS1+ (reserved on Windows 8)
+// Values 6 and 7 are reserved for Windows 8 only
+#define PowerRequestFullScreenVideoRequired 8  // Windows 8 only
 
-#define POWER_REQUEST_SUPPORTED_MODES_V1 3
-#define POWER_REQUEST_SUPPORTED_MODES_V2 5
-#define POWER_REQUEST_SUPPORTED_MODES_V3 6
+// The number of supported request modes per version
+#define POWER_REQUEST_SUPPORTED_MODES_V1 3 // Windows 7
+#define POWER_REQUEST_SUPPORTED_MODES_V2 9 // Windows 8
+#define POWER_REQUEST_SUPPORTED_MODES_V3 5 // Windows 8.1 and Windows 10 TH1-TH2
+#define POWER_REQUEST_SUPPORTED_MODES_V4 6 // Windows 10 RS1+
 
 typedef struct _POWER_REQUEST
 {
     union
     {
+#if (PHNT_VERSION >= PHNT_WIN7)
         struct
         {
             ULONG Reserved;
             ULONG Requires[POWER_REQUEST_SUPPORTED_MODES_V1];
             POWER_REQUEST_BODY Body;
         } V1;
-#if (PHNT_VERSION >= PHNT_WINBLUE)
+#endif
+#if (PHNT_VERSION >= PHNT_WIN8)
         struct
         {
             ULONG Reserved;
@@ -62,7 +68,7 @@ typedef struct _POWER_REQUEST
             POWER_REQUEST_BODY Body;
         } V2;
 #endif
-#if (PHNT_VERSION >= PHNT_REDSTONE)
+#if (PHNT_VERSION >= PHNT_WINBLUE)
         struct
         {
             ULONG Reserved;
@@ -70,10 +76,18 @@ typedef struct _POWER_REQUEST
             POWER_REQUEST_BODY Body;
         } V3;
 #endif
+#if (PHNT_VERSION >= PHNT_REDSTONE)
+        struct
+        {
+            ULONG Reserved;
+            ULONG Requires[POWER_REQUEST_SUPPORTED_MODES_V4];
+            POWER_REQUEST_BODY Body;
+        } V4;
+#endif
     };
 } POWER_REQUEST, *PPOWER_REQUEST;
 
-typedef struct _POWER_REQUEST_CONTEXT_INFO
+typedef struct _POWER_REQUEST_CONTEXT_OUT
 {
     ULONG Flags; // POWER_REQUEST_CONTEXT_SIMPLE_STRING or POWER_REQUEST_CONTEXT_DETAILED_STRING
     union
@@ -87,4 +101,4 @@ typedef struct _POWER_REQUEST_CONTEXT_INFO
         } Detailed;
         ULONG_PTR OffsetToSimpleString;
     };
-} POWER_REQUEST_CONTEXT_INFO, *PPOWER_REQUEST_CONTEXT_INFO;
+} POWER_REQUEST_CONTEXT_OUT, *PPOWER_REQUEST_CONTEXT_OUT;

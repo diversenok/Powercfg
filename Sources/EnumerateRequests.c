@@ -5,7 +5,7 @@
 #include <subprocesstag.h>
 #include <stdio.h>
 #include "helper.h"
-#include "power_requests.h"
+#include "power.h"
 
 ULONG DisplayRequest(
     _In_ PPOWER_REQUEST Request,
@@ -15,7 +15,7 @@ ULONG DisplayRequest(
     PPOWER_REQUEST_BODY requestBody;
 
     // Determine if the request matches the type
-    if ((ULONG)RequestType >= SupportedModeCount || !Request->V3.Requires[RequestType])
+    if ((ULONG)RequestType >= SupportedModeCount || !Request->V4.Requires[RequestType])
         return FALSE;
 
     // The location of the request's body depends on the supported modes
@@ -31,6 +31,10 @@ ULONG DisplayRequest(
 
         case POWER_REQUEST_SUPPORTED_MODES_V3:
             requestBody = &Request->V3.Body;
+            break;
+
+        case POWER_REQUEST_SUPPORTED_MODES_V4:
+            requestBody = &Request->V4.Body;
             break;
 
         default:
@@ -90,8 +94,8 @@ ULONG DisplayRequest(
     // The context section stores the reason of the request
     if (requestBody->OffsetToContext)
     {
-        PPOWER_REQUEST_CONTEXT_INFO context =
-            (PPOWER_REQUEST_CONTEXT_INFO)RtlOffsetToPointer(requestBody, requestBody->OffsetToContext);
+        PPOWER_REQUEST_CONTEXT_OUT context =
+            (PPOWER_REQUEST_CONTEXT_OUT)RtlOffsetToPointer(requestBody, requestBody->OffsetToContext);
         
         if (context->Flags & POWER_REQUEST_CONTEXT_SIMPLE_STRING)
         {

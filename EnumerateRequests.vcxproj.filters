@@ -18,10 +18,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Sources\PowercfgRequests.c">
+    <ClCompile Include="Sources\helper.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\helper.c">
+    <ClCompile Include="Sources\EnumerateRequests.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -137,7 +137,7 @@
     <ClInclude Include="Sources\helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Sources\power_requests.h">
+    <ClInclude Include="Sources\power.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

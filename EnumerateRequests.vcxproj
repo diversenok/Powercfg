@@ -22,8 +22,9 @@
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{e33504d6-efbe-4b5a-8596-7becd7842767}</ProjectGuid>
-    <RootNamespace>PowercfgRequests</RootNamespace>
+    <RootNamespace>EnumerateRequests</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>EnumerateRequests</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -156,7 +157,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Sources\helper.c" />
-    <ClCompile Include="Sources\PowercfgRequests.c" />
+    <ClCompile Include="Sources\EnumerateRequests.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
@@ -166,7 +167,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Sources\helper.h" />
-    <ClInclude Include="Sources\power_requests.h" />
+    <ClInclude Include="Sources\power.h" />
     <ClInclude Include="phnt\ntd3dkmt.h" />
     <ClInclude Include="phnt\ntdbg.h" />
     <ClInclude Include="phnt\ntexapi.h" />

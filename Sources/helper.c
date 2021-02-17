@@ -1,6 +1,6 @@
 #include "helper.h"
 #include <stdio.h>
-#include "power_requests.h"
+#include "power.h"
 
 ULONG IsSuccess(_In_ NTSTATUS Status, _In_ LPCWSTR Where)
 {
@@ -53,17 +53,22 @@ void InitializeSupportedModeCount(void)
             (versionInfo.dwMinorVersion == 0 && versionInfo.dwBuildNumber >= 14393))))
     {
         // Windows 10 RS1+
-        SupportedModeCount = POWER_REQUEST_SUPPORTED_MODES_V3;
+        SupportedModeCount = POWER_REQUEST_SUPPORTED_MODES_V4;
     }
     else if (versionInfo.dwMajorVersion > 6 ||
         (versionInfo.dwMajorVersion == 6 && versionInfo.dwMinorVersion >= 3))
     {
         // Windows 8.1+
+        SupportedModeCount = POWER_REQUEST_SUPPORTED_MODES_V3;
+    }
+    else if (versionInfo.dwMajorVersion == 6 && versionInfo.dwMinorVersion == 2)
+    {
+        // Windows 8
         SupportedModeCount = POWER_REQUEST_SUPPORTED_MODES_V2;
     }
     else
     {
-        // Windows 7+
+        // Windows 7
         SupportedModeCount = POWER_REQUEST_SUPPORTED_MODES_V1;
     }
 }
