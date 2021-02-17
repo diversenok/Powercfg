@@ -14,7 +14,7 @@ typedef struct _POWER_REQUEST_CONTEXT_IN
             UNICODE_STRING LocalizedReasonModule;
             USHORT LocalizedReasonId;
             ULONG ReasonStringCount;
-            PUNICODE_STRING ReasonStrings[ANYSIZE_ARRAY];
+            UNICODE_STRING *ReasonStrings;
         } Detailed;
         UNICODE_STRING SimpleReasonString;
     };
@@ -31,13 +31,13 @@ typedef struct _POWER_REQUEST_CONTEXT_IN
 // Values 6 and 7 are reserved for Windows 8 only
 #define PowerRequestFullScreenVideoRequired 8  // Windows 8 only
 
-typedef struct _POWER_REQUEST_SET_INFORMATION
+typedef struct _POWER_REQUEST_ACTION
 {
     HANDLE PowerRequestHandle;
     POWER_REQUEST_TYPE RequestType;
     BOOLEAN Enable;
-    HANDLE Reserved;
-} POWER_REQUEST_SET_INFORMATION, *PPOWER_REQUEST_SET_INFORMATION;
+    HANDLE TargetProcessHandle; // only for requests created via PlmPowerRequestCreate
+} POWER_REQUEST_ACTION, *PPOWER_REQUEST_ACTION;
 
 typedef struct _POWER_REQUEST_LIST
 {

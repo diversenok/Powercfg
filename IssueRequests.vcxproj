@@ -188,8 +188,12 @@
     <ClInclude Include="phnt\phnt_windows.h" />
     <ClInclude Include="phnt\subprocesstag.h" />
     <ClInclude Include="phnt\winsta.h" />
+    <ClInclude Include="Sources\resource.h" />
     <ClInclude Include="Sources\helper.h" />
     <ClInclude Include="Sources\power.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Sources\Resource.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

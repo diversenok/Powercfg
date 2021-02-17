@@ -133,5 +133,13 @@
     <ClInclude Include="Sources\power.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Sources\resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Sources\Resource.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

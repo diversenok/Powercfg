@@ -1,0 +1,6 @@
+#include "resource.h"
+
+STRINGTABLE 
+BEGIN
+    ID_EXAMPLE_STRING L"A localizable reason message"
+END

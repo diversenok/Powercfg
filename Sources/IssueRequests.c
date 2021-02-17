@@ -6,29 +6,79 @@
 #include <conio.h>
 #include "helper.h"
 #include "power.h"
+#include "resource.h"
 
 NTSTATUS CreateSimplePowerRequest(
     _Out_ PHANDLE PowerRequestHandle,
     _In_opt_ PCWSTR ReasonMessage
 )
 {
-    POWER_REQUEST_CONTEXT_IN requestContext = { 0 };
+    POWER_REQUEST_CONTEXT_IN context = { 0 };
 
-    requestContext.Version = POWER_REQUEST_CONTEXT_VERSION;
-    requestContext.Flags = POWER_REQUEST_CONTEXT_SIMPLE_STRING;
+    context.Version = POWER_REQUEST_CONTEXT_VERSION;
+    context.Flags = POWER_REQUEST_CONTEXT_SIMPLE_STRING;
 
     if (ReasonMessage)
-        RtlInitUnicodeString(&requestContext.SimpleReasonString, ReasonMessage);
+        RtlInitUnicodeString(&context.SimpleReasonString, ReasonMessage);
     else
-        requestContext.Flags |= POWER_REQUEST_CONTEXT_NOT_SPECIFIED;
+        context.Flags |= POWER_REQUEST_CONTEXT_NOT_SPECIFIED;
 
     return NtPowerInformation(
         PowerRequestCreate,
-        &requestContext,
+        &context,
         sizeof(POWER_REQUEST_CONTEXT_IN),
         PowerRequestHandle,
         sizeof(HANDLE)
     );
+}
+
+NTSTATUS CreateDetailedPowerRequest(
+    _Out_ PHANDLE PowerRequestHandle,
+    _In_ PWSTR ModuleFileName,
+    _In_ USHORT MessageId,
+    _In_opt_ PWSTR* MessageParameters,
+    _In_ ULONG ParameterCount
+)
+{
+    POWER_REQUEST_CONTEXT_IN context = { 0 };
+
+    context.Version = POWER_REQUEST_CONTEXT_VERSION;
+    context.Flags = POWER_REQUEST_CONTEXT_DETAILED_STRING;
+
+    RtlInitUnicodeString(&context.Detailed.LocalizedReasonModule, ModuleFileName);
+    context.Detailed.LocalizedReasonId = MessageId;
+
+    if (ParameterCount && MessageParameters)
+    {
+        // Allocate memory for supplying parameters
+        context.Detailed.ReasonStrings = RtlAllocateHeap(
+            RtlGetCurrentPeb()->ProcessHeap,
+            0,
+            sizeof(UNICODE_STRING) * ParameterCount
+        );
+
+        if (!context.Detailed.ReasonStrings)
+            return STATUS_NO_MEMORY;
+
+        context.Detailed.ReasonStringCount = ParameterCount;
+
+        // Set references to each parameter
+        for (ULONG i = 0; i < ParameterCount; i++)
+            RtlInitUnicodeString(&context.Detailed.ReasonStrings[i], MessageParameters[i]);
+    }
+    
+    NTSTATUS status = NtPowerInformation(
+        PowerRequestCreate,
+        &context,
+        sizeof(POWER_REQUEST_CONTEXT_IN),
+        PowerRequestHandle,
+        sizeof(HANDLE)
+    );
+
+    // Clean-up
+    RtlFreeHeap(RtlGetCurrentPeb()->ProcessHeap, 0, context.Detailed.ReasonStrings);
+
+    return status;
 }
 
 NTSTATUS IssueActionPowerRequest(
@@ -37,7 +87,7 @@ NTSTATUS IssueActionPowerRequest(
     _In_ BOOLEAN Enable
 )
 {
-    POWER_REQUEST_SET_INFORMATION info = { 0 };
+    POWER_REQUEST_ACTION info = { 0 };
 
     info.PowerRequestHandle = PowerRequestHandle;
     info.RequestType = RequestType;
@@ -46,7 +96,7 @@ NTSTATUS IssueActionPowerRequest(
     return NtPowerInformation(
         PowerRequestAction,
         &info,
-        sizeof(POWER_REQUEST_SET_INFORMATION),
+        sizeof(POWER_REQUEST_ACTION),
         NULL,
         0
     );
@@ -58,7 +108,7 @@ int main()
     if (IsWoW64())
         return 1;
 
-    HANDLE hPowerRequest;
+    HANDLE hPowerRequest = NULL;
 
     // Test simple power requests
     NTSTATUS status = CreateSimplePowerRequest(
@@ -66,7 +116,7 @@ int main()
         L"Simple reason string"
     );
 
-    if (!IsSuccess(status, L"Power request creation"))
+    if (!IsSuccess(status, L"Creating power request"))
         return 1;
 
     // Ask for the display to be on
@@ -76,10 +126,8 @@ int main()
         TRUE
     );
 
-    if (!IsSuccess(status, L"Enabling power request"))
-        return 1;
-
-    wprintf_s(L"Success; press any key to exit...");
+    if (!IsSuccess(status, L"Activating power request"))
+        goto CLEANUP;
 
     // Also try more exotic actions that are blocked by the documented API
     IssueActionPowerRequest(
@@ -88,6 +136,41 @@ int main()
         TRUE
     );
 
+    wprintf_s(L"Success; You should see a power request with a simple message.\r\n");
+    wprintf_s(L"Press any key to continue...\r\n");
     _getch();
+
+    NtClose(hPowerRequest);
+
+    // Test localizable power requests using a locally embedded resource
+    status = CreateDetailedPowerRequest(
+        &hPowerRequest,
+        RtlGetCurrentPeb()->ProcessParameters->ImagePathName.Buffer,
+        ID_EXAMPLE_STRING,
+        NULL,
+        0
+    );
+
+    if (!IsSuccess(status, L"Creating power request"))
+        return 1;
+
+    // Ask for the system to stay awake
+    status = IssueActionPowerRequest(
+        hPowerRequest,
+        PowerRequestSystemRequired,
+        TRUE
+    );
+
+    if (!IsSuccess(status, L"Activating power request"))
+        goto CLEANUP;
+
+    wprintf_s(L"Success; You should see a power request with a detailed message.\r\n");
+    wprintf_s(L"Press any key to exit...\r\n");
+    _getch();
+
+CLEANUP:
+    if (hPowerRequest)
+        NtClose(hPowerRequest);
+
     return 0;
 }

@@ -1,0 +1,1 @@
+#define ID_EXAMPLE_STRING 30001
