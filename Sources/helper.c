@@ -42,7 +42,6 @@ ULONG SupportedModeCount = 0;
 
 void InitializeSupportedModeCount(void)
 {
-    POWER_REQUEST request;
     RTL_OSVERSIONINFOEXW versionInfo = { sizeof(RTL_OSVERSIONINFOEXW) };
 
     if (!NT_SUCCESS(RtlGetVersion(&versionInfo)))
