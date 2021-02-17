@@ -18,7 +18,26 @@ typedef struct _POWER_REQUEST_CONTEXT_IN
         } Detailed;
         UNICODE_STRING SimpleReasonString;
     };
-} POWER_REQUEST_CONTEXT_IN, *PPOWER_REQUEST_CREATE;
+} POWER_REQUEST_CONTEXT_IN, *PPOWER_REQUEST_CONTEXT_IN;
+
+// POWER_REQUEST_TYPE
+// Note: We don't use an enum since it conflicts with the Windows SDK.
+#define PowerRequestDisplayRequired 0
+#define PowerRequestSystemRequired 1
+#define PowerRequestAwayModeRequired 2
+#define PowerRequestExecutionRequired 3        // Windows 8+
+#define PowerRequestPerfBoostRequired 4        // Windows 8+
+#define PowerRequestActiveLockScreenRequired 5 // Windows 10 RS1+ (reserved on Windows 8)
+// Values 6 and 7 are reserved for Windows 8 only
+#define PowerRequestFullScreenVideoRequired 8  // Windows 8 only
+
+typedef struct _POWER_REQUEST_SET_INFORMATION
+{
+    HANDLE PowerRequestHandle;
+    POWER_REQUEST_TYPE RequestType;
+    BOOLEAN Enable;
+    HANDLE Reserved;
+} POWER_REQUEST_SET_INFORMATION, *PPOWER_REQUEST_SET_INFORMATION;
 
 typedef struct _POWER_REQUEST_LIST
 {
@@ -49,17 +68,6 @@ typedef struct _POWER_REQUEST_BODY
     };    
     ULONG_PTR OffsetToContext;
 } POWER_REQUEST_BODY, *PPOWER_REQUEST_BODY;
-
-// POWER_REQUEST_TYPE
-// Note: We don't use an enum since it conflicts with the Windows SDK.
-#define PowerRequestDisplayRequired 0
-#define PowerRequestSystemRequired 1
-#define PowerRequestAwayModeRequired 2
-#define PowerRequestExecutionRequired 3        // Windows 8+
-#define PowerRequestPerfBoostRequired 4        // Windows 8+
-#define PowerRequestActiveLockScreenRequired 5 // Windows 10 RS1+ (reserved on Windows 8)
-// Values 6 and 7 are reserved for Windows 8 only
-#define PowerRequestFullScreenVideoRequired 8  // Windows 8 only
 
 // The number of supported request modes per version
 #define POWER_REQUEST_SUPPORTED_MODES_V1 3 // Windows 7

@@ -31,6 +31,27 @@ NTSTATUS CreateSimplePowerRequest(
     );
 }
 
+NTSTATUS IssueActionPowerRequest(
+    _In_ HANDLE PowerRequestHandle,
+    _In_ POWER_REQUEST_TYPE RequestType,
+    _In_ BOOLEAN Enable
+)
+{
+    POWER_REQUEST_SET_INFORMATION info = { 0 };
+
+    info.PowerRequestHandle = PowerRequestHandle;
+    info.RequestType = RequestType;
+    info.Enable = Enable;
+
+    return NtPowerInformation(
+        PowerRequestAction,
+        &info,
+        sizeof(POWER_REQUEST_SET_INFORMATION),
+        NULL,
+        0
+    );
+}
+
 int main()
 {
     // Do not allow running under WoW64
@@ -42,13 +63,30 @@ int main()
     // Test simple power requests
     NTSTATUS status = CreateSimplePowerRequest(
         &hPowerRequest,
-        L"Testing Power Requests"
+        L"Simple reason string"
     );
 
-    if (NT_SUCCESS(status))
-        wprintf_s(L"Success, handle value is %p\r\n", hPowerRequest);
-    else
-        wprintf_s(L"NtPowerInformation failed with 0x%0.8x", status);
+    if (!IsSuccess(status, L"Power request creation"))
+        return 1;
+
+    // Ask for the display to be on
+    status = IssueActionPowerRequest(
+        hPowerRequest,
+        PowerRequestDisplayRequired,
+        TRUE
+    );
+
+    if (!IsSuccess(status, L"Enabling power request"))
+        return 1;
+
+    wprintf_s(L"Success; press any key to exit...");
+
+    // Also try more exotic actions that are blocked by the documented API
+    IssueActionPowerRequest(
+        hPowerRequest,
+        PowerRequestPerfBoostRequired,
+        TRUE
+    );
 
     _getch();
     return 0;
