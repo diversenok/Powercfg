@@ -88,15 +88,20 @@ NTSTATUS IssueActionPowerRequest(
 )
 {
     POWER_REQUEST_ACTION info = { 0 };
+    SIZE_T size = sizeof(POWER_REQUEST_ACTION);
 
     info.PowerRequestHandle = PowerRequestHandle;
     info.RequestType = RequestType;
     info.Enable = Enable;
 
+    // Windows 7 does not know about the last field, exclude it
+    if (RtlGetCurrentPeb()->OSMajorVersion == 6 && RtlGetCurrentPeb()->OSMinorVersion == 1)
+        size = FIELD_OFFSET(POWER_REQUEST_ACTION, TargetProcessHandle);
+
     return NtPowerInformation(
         PowerRequestAction,
         &info,
-        sizeof(POWER_REQUEST_ACTION),
+        size,
         NULL,
         0
     );

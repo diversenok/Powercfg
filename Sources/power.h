@@ -36,7 +36,7 @@ typedef struct _POWER_REQUEST_ACTION
     HANDLE PowerRequestHandle;
     POWER_REQUEST_TYPE RequestType;
     BOOLEAN Enable;
-    HANDLE TargetProcessHandle; // only for requests created via PlmPowerRequestCreate
+    HANDLE TargetProcessHandle; // Windows 8+ and only for requests created via PlmPowerRequestCreate
 } POWER_REQUEST_ACTION, *PPOWER_REQUEST_ACTION;
 
 typedef struct _POWER_REQUEST_LIST
@@ -79,14 +79,12 @@ typedef struct _POWER_REQUEST
 {
     union
     {
-#if (PHNT_VERSION >= PHNT_WIN7)
         struct
         {
             ULONG Reserved;
             ULONG Requires[POWER_REQUEST_SUPPORTED_MODES_V1];
             POWER_REQUEST_BODY Body;
         } V1;
-#endif
 #if (PHNT_VERSION >= PHNT_WIN8)
         struct
         {
