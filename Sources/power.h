@@ -82,14 +82,14 @@ typedef struct _POWER_REQUEST
         struct
         {
             ULONG Reserved;
-            ULONG Requires[POWER_REQUEST_SUPPORTED_MODES_V1];
+            ULONG TimesActive[POWER_REQUEST_SUPPORTED_MODES_V1];
             POWER_REQUEST_BODY Body;
         } V1;
 #if (PHNT_VERSION >= PHNT_WIN8)
         struct
         {
             ULONG Reserved;
-            ULONG Requires[POWER_REQUEST_SUPPORTED_MODES_V2];
+            ULONG TimesActive[POWER_REQUEST_SUPPORTED_MODES_V2];
             POWER_REQUEST_BODY Body;
         } V2;
 #endif
@@ -97,7 +97,7 @@ typedef struct _POWER_REQUEST
         struct
         {
             ULONG Reserved;
-            ULONG Requires[POWER_REQUEST_SUPPORTED_MODES_V3];
+            ULONG TimesActive[POWER_REQUEST_SUPPORTED_MODES_V3];
             POWER_REQUEST_BODY Body;
         } V3;
 #endif
@@ -105,7 +105,7 @@ typedef struct _POWER_REQUEST
         struct
         {
             ULONG Reserved;
-            ULONG Requires[POWER_REQUEST_SUPPORTED_MODES_V4];
+            ULONG TimesActive[POWER_REQUEST_SUPPORTED_MODES_V4];
             POWER_REQUEST_BODY Body;
         } V4;
 #endif

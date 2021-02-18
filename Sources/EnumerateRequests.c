@@ -15,7 +15,7 @@ ULONG DisplayRequest(
     PPOWER_REQUEST_BODY requestBody;
 
     // Determine if the request matches the type
-    if ((ULONG)RequestType >= SupportedModeCount || !Request->V4.Requires[RequestType])
+    if ((ULONG)RequestType >= SupportedModeCount || !Request->V4.TimesActive[RequestType])
         return FALSE;
 
     // The location of the request's body depends on the supported modes
@@ -64,6 +64,10 @@ ULONG DisplayRequest(
     PCWSTR requesterName = L"Legacy Kernel Caller";
     PCWSTR requesterDetails = NULL;
     TAG_INFO_NAME_FROM_TAG serviceInfo = { 0 };
+
+    // Power requests are reentrant and maintain a counter
+    if (Request->V4.TimesActive[RequestType] > 1)
+        wprintf_s(L"[%d times] ", Request->V4.TimesActive[RequestType]);
 
     // Retrieve general requester information
     if (requestBody->OffsetToRequester)
