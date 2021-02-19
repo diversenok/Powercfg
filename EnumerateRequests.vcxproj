@@ -167,7 +167,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Sources\helper.h" />
-    <ClInclude Include="Sources\power.h" />
     <ClInclude Include="phnt\ntd3dkmt.h" />
     <ClInclude Include="phnt\ntdbg.h" />
     <ClInclude Include="phnt\ntexapi.h" />

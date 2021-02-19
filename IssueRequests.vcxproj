@@ -190,7 +190,6 @@
     <ClInclude Include="phnt\winsta.h" />
     <ClInclude Include="Sources\resource.h" />
     <ClInclude Include="Sources\helper.h" />
-    <ClInclude Include="Sources\power.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Sources\Resource.rc" />

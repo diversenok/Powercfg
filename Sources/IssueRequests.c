@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <conio.h>
 #include "helper.h"
-#include "power.h"
 #include "resource.h"
 
 NTSTATUS CreateSimplePowerRequest(
@@ -13,20 +12,20 @@ NTSTATUS CreateSimplePowerRequest(
     _In_opt_ PCWSTR ReasonMessage
 )
 {
-    POWER_REQUEST_CONTEXT_IN context = { 0 };
+    COUNTED_REASON_CONTEXT context = { 0 };
 
     context.Version = POWER_REQUEST_CONTEXT_VERSION;
     context.Flags = POWER_REQUEST_CONTEXT_SIMPLE_STRING;
 
     if (ReasonMessage)
-        RtlInitUnicodeString(&context.SimpleReasonString, ReasonMessage);
+        RtlInitUnicodeString(&context.SimpleString, ReasonMessage);
     else
         context.Flags |= POWER_REQUEST_CONTEXT_NOT_SPECIFIED;
 
     return NtPowerInformation(
         PowerRequestCreate,
         &context,
-        sizeof(POWER_REQUEST_CONTEXT_IN),
+        sizeof(COUNTED_REASON_CONTEXT),
         PowerRequestHandle,
         sizeof(HANDLE)
     );
@@ -40,43 +39,43 @@ NTSTATUS CreateDetailedPowerRequest(
     _In_ ULONG ParameterCount
 )
 {
-    POWER_REQUEST_CONTEXT_IN context = { 0 };
+    COUNTED_REASON_CONTEXT context = { 0 };
 
     context.Version = POWER_REQUEST_CONTEXT_VERSION;
     context.Flags = POWER_REQUEST_CONTEXT_DETAILED_STRING;
 
-    RtlInitUnicodeString(&context.Detailed.LocalizedReasonModule, ModuleFileName);
-    context.Detailed.LocalizedReasonId = MessageId;
+    RtlInitUnicodeString(&context.ResourceFileName, ModuleFileName);
+    context.ResourceReasonId = MessageId;
 
     if (ParameterCount && MessageParameters)
     {
         // Allocate memory for supplying parameters
-        context.Detailed.ReasonStrings = RtlAllocateHeap(
+        context.ReasonStrings = RtlAllocateHeap(
             RtlGetCurrentPeb()->ProcessHeap,
             0,
             sizeof(UNICODE_STRING) * ParameterCount
         );
 
-        if (!context.Detailed.ReasonStrings)
+        if (!context.ReasonStrings)
             return STATUS_NO_MEMORY;
 
-        context.Detailed.ReasonStringCount = ParameterCount;
+        context.StringCount = ParameterCount;
 
         // Set references to each parameter
         for (ULONG i = 0; i < ParameterCount; i++)
-            RtlInitUnicodeString(&context.Detailed.ReasonStrings[i], MessageParameters[i]);
+            RtlInitUnicodeString(&context.ReasonStrings[i], MessageParameters[i]);
     }
     
     NTSTATUS status = NtPowerInformation(
         PowerRequestCreate,
         &context,
-        sizeof(POWER_REQUEST_CONTEXT_IN),
+        sizeof(COUNTED_REASON_CONTEXT),
         PowerRequestHandle,
         sizeof(HANDLE)
     );
 
     // Clean-up
-    RtlFreeHeap(RtlGetCurrentPeb()->ProcessHeap, 0, context.Detailed.ReasonStrings);
+    RtlFreeHeap(RtlGetCurrentPeb()->ProcessHeap, 0, context.ReasonStrings);
 
     return status;
 }
@@ -88,15 +87,15 @@ NTSTATUS IssueActionPowerRequest(
 )
 {
     POWER_REQUEST_ACTION info = { 0 };
-    SIZE_T size = sizeof(POWER_REQUEST_ACTION);
+    ULONG size = sizeof(POWER_REQUEST_ACTION);
 
-    info.PowerRequestHandle = PowerRequestHandle;
+    info.PowerRequest = PowerRequestHandle;
     info.RequestType = RequestType;
     info.Enable = Enable;
 
     // Windows 7 does not know about the last field, exclude it
     if (RtlGetCurrentPeb()->OSMajorVersion == 6 && RtlGetCurrentPeb()->OSMinorVersion == 1)
-        size = FIELD_OFFSET(POWER_REQUEST_ACTION, TargetProcessHandle);
+        size = FIELD_OFFSET(POWER_REQUEST_ACTION, TargetProcess);
 
     return NtPowerInformation(
         PowerRequestAction,

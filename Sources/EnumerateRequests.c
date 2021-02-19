@@ -5,7 +5,6 @@
 #include <subprocesstag.h>
 #include <stdio.h>
 #include "helper.h"
-#include "power.h"
 
 ULONG DisplayRequest(
     _In_ PPOWER_REQUEST Request,
@@ -15,25 +14,25 @@ ULONG DisplayRequest(
     PPOWER_REQUEST_BODY requestBody;
 
     // Determine if the request matches the type
-    if ((ULONG)RequestType >= SupportedModeCount || !Request->V4.TimesActive[RequestType])
+    if ((ULONG)RequestType >= SupportedModeCount || !Request->V4.ActiveCount[RequestType])
         return FALSE;
 
     // The location of the request's body depends on the supported modes
     switch (SupportedModeCount)
     {
-        case POWER_REQUEST_SUPPORTED_MODES_V1:
+        case POWER_REQUEST_SUPPORTED_TYPES_V1:
             requestBody = &Request->V1.Body;
             break;
 
-        case POWER_REQUEST_SUPPORTED_MODES_V2:
+        case POWER_REQUEST_SUPPORTED_TYPES_V2:
             requestBody = &Request->V2.Body;
             break;
 
-        case POWER_REQUEST_SUPPORTED_MODES_V3:
+        case POWER_REQUEST_SUPPORTED_TYPES_V3:
             requestBody = &Request->V3.Body;
             break;
 
-        case POWER_REQUEST_SUPPORTED_MODES_V4:
+        case POWER_REQUEST_SUPPORTED_TYPES_V4:
             requestBody = &Request->V4.Body;
             break;
 
@@ -66,8 +65,8 @@ ULONG DisplayRequest(
     TAG_INFO_NAME_FROM_TAG serviceInfo = { 0 };
 
     // Power requests are reentrant and maintain a counter
-    if (Request->V4.TimesActive[RequestType] > 1)
-        wprintf_s(L"[%d times] ", Request->V4.TimesActive[RequestType]);
+    if (Request->V4.ActiveCount[RequestType] > 1)
+        wprintf_s(L"[%d times] ", Request->V4.ActiveCount[RequestType]);
 
     // Retrieve general requester information
     if (requestBody->OffsetToRequester)
@@ -98,8 +97,8 @@ ULONG DisplayRequest(
     // The context section stores the reason of the request
     if (requestBody->OffsetToContext)
     {
-        PPOWER_REQUEST_CONTEXT_OUT context =
-            (PPOWER_REQUEST_CONTEXT_OUT)RtlOffsetToPointer(requestBody, requestBody->OffsetToContext);
+        PCOUNTED_REASON_CONTEXT_RELATIVE context =
+            (PCOUNTED_REASON_CONTEXT_RELATIVE)RtlOffsetToPointer(requestBody, requestBody->OffsetToContext);
         
         if (context->Flags & POWER_REQUEST_CONTEXT_SIMPLE_STRING)
         {
@@ -112,7 +111,7 @@ ULONG DisplayRequest(
             // Detailed strings are located in an external module
 
             HMODULE hModule = LoadLibraryExW(
-                (PCWSTR)RtlOffsetToPointer(context, context->Detailed.OffsetToModuleName),
+                (PCWSTR)RtlOffsetToPointer(context, context->OffsetToResourceFileName),
                 NULL,
                 LOAD_LIBRARY_AS_DATAFILE
             );
@@ -122,7 +121,7 @@ ULONG DisplayRequest(
                 PCWSTR reasonString;
                 int reasonLength = LoadStringW(
                     hModule,
-                    context->Detailed.LocalizedReasonId,
+                    context->ResourceReasonId,
                     (LPWSTR)&reasonString,
                     0
                 );

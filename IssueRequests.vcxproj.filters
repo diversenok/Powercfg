@@ -130,9 +130,6 @@
     <ClInclude Include="Sources\helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Sources\power.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Sources\resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>

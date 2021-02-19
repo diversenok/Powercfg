@@ -1,4 +1,4 @@
-# Powercfg
+# Reversing Powercfg
 
 This is a demo project on how to issue and enumerate power requests on Windows using Native API. Programs (such as media players) can create power requests by using the [PowerCreateRequest](https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-powercreaterequest) function, followed by calls to [PowerSetRequest](https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-powersetrequest). It allows them to request the system to ignore its default settings of dimming the display or shutting down after a timeout of inactivity. The built-in **powercfg** tool allows viewing such requests when called with a `/requests` parameter. Under the hood, every piece of this functionality relies on calling [NtPowerInformation](https://github.com/processhacker/processhacker/blob/afda2a2dbf2d2e37abc0e3986c295ec279192eb4/phnt/include/ntpoapi.h#L244-L253) with several undocumented info classes.
 
@@ -8,7 +8,9 @@ The purpose of this project is to reverse and document the underlying structures
  - `PowerRequestAction`
  - `GetPowerRequestList`
 
-## Modes
+## Request Types
+
+Each power request can include any combination of the following operations:
 
  - **DISPLAY** - does not allow dimming the display after a timeout.
  - **SYSTEM** - keeps the system awake, preventing automatic shutdown.
@@ -21,7 +23,7 @@ The purpose of this project is to reverse and document the underlying structures
 
 #### PowerRequestCreate
 
-This information class captures the provided diagnostic reason and creates a PowerRequest kernel object, returning an exclusive handle. The reason can either be a simple message or a localized string resource in a DLL (for which you can also supply parameters). The request is logically assigned to the current process and is not active by default. A documented function [with the same name](https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-powercreaterequest) exposes the full functionality of this info class.
+This information class captures the provided diagnostic reason and creates a PowerRequest kernel object, returning an exclusive handle. The reason can either be a simple message or a localized string resource in a DLL (for which you can also supply parameters). The request is logically assigned to the current process and is not active by default. A documented function [with a similar name](https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-powercreaterequest) exposes the full functionality of this info class.
 
 #### PlmPowerRequestCreate
 
