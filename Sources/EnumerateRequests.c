@@ -11,48 +11,80 @@ ULONG DisplayRequest(
     _In_ POWER_REQUEST_TYPE RequestType
 )
 {
-    PPOWER_REQUEST_BODY requestBody;
+    PDIAGNOSTIC_BUFFER diagnosticBuffer;
 
     // Determine if the request matches the type
-    if ((ULONG)RequestType >= SupportedModeCount || !Request->V4.ActiveCount[RequestType])
+    if ((ULONG)RequestType >= SupportedModeCount || !Request->V4.PowerRequestCount[RequestType])
         return FALSE;
 
     // The location of the request's body depends on the supported modes
     switch (SupportedModeCount)
     {
         case POWER_REQUEST_SUPPORTED_TYPES_V1:
-            requestBody = &Request->V1.Body;
+            diagnosticBuffer = &Request->V1.DiagnosticBuffer;
             break;
 
         case POWER_REQUEST_SUPPORTED_TYPES_V2:
-            requestBody = &Request->V2.Body;
+            diagnosticBuffer = &Request->V2.DiagnosticBuffer;
             break;
 
         case POWER_REQUEST_SUPPORTED_TYPES_V3:
-            requestBody = &Request->V3.Body;
+            diagnosticBuffer = &Request->V3.DiagnosticBuffer;
             break;
 
         case POWER_REQUEST_SUPPORTED_TYPES_V4:
-            requestBody = &Request->V4.Body;
+            diagnosticBuffer = &Request->V4.DiagnosticBuffer;
             break;
 
         default:
             return FALSE;
     }
 
-    // Print the requester kind
-    switch (requestBody->Origin)
+    PCWSTR requesterName = L"Unknown";
+    PCWSTR requesterDetails = NULL;    
+    TAG_INFO_NAME_FROM_TAG serviceInfo = { 0 };
+
+    // Diagnostic info depends on the requester type
+    switch (diagnosticBuffer->CallerType)
     {
-        case POWER_REQUEST_ORIGIN_DRIVER:
+        case KernelRequester:
             wprintf_s(L"[DRIVER] ");
+
+            // For drivers, collecn the path and description
+            if (diagnosticBuffer->DeviceDescriptionOffset)
+                requesterName = (PCWSTR)RtlOffsetToPointer(diagnosticBuffer, diagnosticBuffer->DeviceDescriptionOffset);
+            else
+                requesterName = L"Legacy Kernel Caller";
+
+            if (diagnosticBuffer->DevicePathOffset)
+                requesterDetails = (PCWSTR)RtlOffsetToPointer(diagnosticBuffer, diagnosticBuffer->DevicePathOffset);
+
             break;
 
-        case POWER_REQUEST_ORIGIN_PROCESS:
-            wprintf_s(L"[PROCESS (PID %d)] ", requestBody->ProcessId);
-            break;
+        case UserProcessRequester:
+        case UserSharedServiceRequester:
+            wprintf_s(diagnosticBuffer->CallerType == UserProcessRequester ?
+                L"[PROCESS (PID %d)] " :
+                L"[SERVICE (PID %d)] ",
+                diagnosticBuffer->ProcessId);
 
-        case POWER_REQUEST_ORIGIN_SERVICE:
-            wprintf_s(L"[SERVICE (PID %d)] ", requestBody->ProcessId);
+            // Collect the process name for processes and services
+            if (diagnosticBuffer->ProcessImageNameOffset)
+                requesterName = (PCWSTR)RtlOffsetToPointer(diagnosticBuffer, diagnosticBuffer->ProcessImageNameOffset);
+
+            // For services, convert their tags to names
+            if (diagnosticBuffer->CallerType == UserSharedServiceRequester)
+            {
+                PQUERY_TAG_INFORMATION I_QueryTagInformation = I_QueryTagInformationLoader();
+
+                serviceInfo.InParams.dwPid = diagnosticBuffer->ProcessId;
+                serviceInfo.InParams.dwTag = diagnosticBuffer->ServiceTag;
+
+                if (I_QueryTagInformation &&
+                    I_QueryTagInformation(NULL, eTagInfoLevelNameFromTag, &serviceInfo) == ERROR_SUCCESS)
+                    requesterDetails = serviceInfo.OutParams.pszName;
+            }
+
             break;
 
         default:
@@ -60,58 +92,33 @@ ULONG DisplayRequest(
             break;
     }
 
-    PCWSTR requesterName = L"Legacy Kernel Caller";
-    PCWSTR requesterDetails = NULL;
-    TAG_INFO_NAME_FROM_TAG serviceInfo = { 0 };
-
-    // Power requests are reentrant and maintain a counter
-    if (Request->V4.ActiveCount[RequestType] > 1)
-        wprintf_s(L"[%d times] ", Request->V4.ActiveCount[RequestType]);
-
-    // Retrieve general requester information
-    if (requestBody->OffsetToRequester)
-        requesterName = (PCWSTR)RtlOffsetToPointer(requestBody, requestBody->OffsetToRequester);
-
-    // For drivers, locate their full names
-    if (requestBody->Origin == POWER_REQUEST_ORIGIN_DRIVER && requestBody->OffsetToDriverName)
-        requesterDetails = (PCWSTR)RtlOffsetToPointer(requestBody, requestBody->OffsetToDriverName);
-
-    // For services, convert their tags to names
-    if (requestBody->Origin == POWER_REQUEST_ORIGIN_SERVICE)
-    {
-        PQUERY_TAG_INFORMATION I_QueryTagInformation = I_QueryTagInformationLoader();
-
-        serviceInfo.InParams.dwPid = requestBody->ProcessId;
-        serviceInfo.InParams.dwTag = requestBody->ServiceTag;
-
-        if (I_QueryTagInformation &&
-            I_QueryTagInformation(NULL, eTagInfoLevelNameFromTag, &serviceInfo) == ERROR_SUCCESS)
-            requesterDetails = serviceInfo.OutParams.pszName;
-    }
+    // Power requests maintain a counter
+    if (Request->V4.PowerRequestCount[RequestType] > 1)
+        wprintf_s(L"[%d times] ", Request->V4.PowerRequestCount[RequestType]);
 
     if (requesterDetails)
         wprintf_s(L"%s (%s)\r\n", requesterName, requesterDetails);
     else
         wprintf_s(L"%s\r\n", requesterName);
 
-    // The context section stores the reason of the request
-    if (requestBody->OffsetToContext)
+    // The diagnostic buffer also stores the reason
+    if (diagnosticBuffer->ReasonOffset)
     {
-        PCOUNTED_REASON_CONTEXT_RELATIVE context =
-            (PCOUNTED_REASON_CONTEXT_RELATIVE)RtlOffsetToPointer(requestBody, requestBody->OffsetToContext);
+        PCOUNTED_REASON_CONTEXT_RELATIVE reason =
+            (PCOUNTED_REASON_CONTEXT_RELATIVE)RtlOffsetToPointer(diagnosticBuffer, diagnosticBuffer->ReasonOffset);
         
-        if (context->Flags & POWER_REQUEST_CONTEXT_SIMPLE_STRING)
+        if (reason->Flags & POWER_REQUEST_CONTEXT_SIMPLE_STRING)
         {
             // Simple strings are packed into the buffer
 
-            wprintf_s(L"%s\r\n", (PCWCHAR)RtlOffsetToPointer(context, context->OffsetToSimpleString));
+            wprintf_s(L"%s\r\n", (PCWCHAR)RtlOffsetToPointer(reason, reason->SimpleStringOffset));
         }
-        else if (context->Flags & POWER_REQUEST_CONTEXT_DETAILED_STRING)
+        else if (reason->Flags & POWER_REQUEST_CONTEXT_DETAILED_STRING)
         {
             // Detailed strings are located in an external module
 
             HMODULE hModule = LoadLibraryExW(
-                (PCWSTR)RtlOffsetToPointer(context, context->OffsetToResourceFileName),
+                (PCWSTR)RtlOffsetToPointer(reason, reason->ResourceFileNameOffset),
                 NULL,
                 LOAD_LIBRARY_AS_DATAFILE
             );
@@ -121,7 +128,7 @@ ULONG DisplayRequest(
                 PCWSTR reasonString;
                 int reasonLength = LoadStringW(
                     hModule,
-                    context->ResourceReasonId,
+                    reason->ResourceReasonId,
                     (LPWSTR)&reasonString,
                     0
                 );
@@ -154,10 +161,10 @@ void DisplayRequests(
 
     ULONG found = FALSE;
 
-    for (ULONG i = 0; i < RequestList->cElements; i++)
+    for (ULONG i = 0; i < RequestList->Count; i++)
     {
         found = DisplayRequest(
-            (PPOWER_REQUEST)RtlOffsetToPointer(RequestList, RequestList->OffsetsToRequests[i]),
+            (PPOWER_REQUEST)RtlOffsetToPointer(RequestList, RequestList->PowerRequestOffsets[i]),
             Condition
         ) || found;
     }
@@ -217,12 +224,12 @@ int main()
 
     InitializeSupportedModeCount();
 
-    DisplayRequests(buffer, PowerRequestDisplayRequired, L"DISPLAY");
-    DisplayRequests(buffer, PowerRequestSystemRequired, L"SYSTEM");
-    DisplayRequests(buffer, PowerRequestAwayModeRequired, L"AWAYMODE");
-    DisplayRequests(buffer, PowerRequestExecutionRequired, L"EXECUTION");
-    DisplayRequests(buffer, PowerRequestPerfBoostRequired, L"PERFBOOST");
-    DisplayRequests(buffer, PowerRequestActiveLockScreenRequired, L"ACTIVELOCKSCREEN");
+    DisplayRequests(buffer, PowerRequestDisplayRequiredInternal, L"DISPLAY");
+    DisplayRequests(buffer, PowerRequestSystemRequiredInternal, L"SYSTEM");
+    DisplayRequests(buffer, PowerRequestAwayModeRequiredInternal, L"AWAYMODE");
+    DisplayRequests(buffer, PowerRequestExecutionRequiredInternal, L"EXECUTION");
+    DisplayRequests(buffer, PowerRequestPerfBoostRequiredInternal, L"PERFBOOST");
+    DisplayRequests(buffer, PowerRequestActiveLockScreenInternal, L"ACTIVELOCKSCREEN");
 
     RtlFreeHeap(RtlGetCurrentPeb()->ProcessHeap, 0, buffer);
 

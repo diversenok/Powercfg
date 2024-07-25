@@ -89,13 +89,13 @@ NTSTATUS IssueActionPowerRequest(
     POWER_REQUEST_ACTION info = { 0 };
     ULONG size = sizeof(POWER_REQUEST_ACTION);
 
-    info.PowerRequest = PowerRequestHandle;
+    info.PowerRequestHandle = PowerRequestHandle;
     info.RequestType = RequestType;
-    info.Enable = Enable;
+    info.SetAction = Enable;
 
     // Windows 7 does not know about the last field, exclude it
     if (RtlGetCurrentPeb()->OSMajorVersion == 6 && RtlGetCurrentPeb()->OSMinorVersion == 1)
-        size = FIELD_OFFSET(POWER_REQUEST_ACTION, TargetProcess);
+        size = FIELD_OFFSET(POWER_REQUEST_ACTION, ProcessHandle);
 
     return NtPowerInformation(
         PowerRequestAction,
@@ -136,7 +136,7 @@ int main()
     // Also try more exotic actions that are blocked by the documented API
     IssueActionPowerRequest(
         hPowerRequest,
-        PowerRequestPerfBoostRequired,
+        PowerRequestPerfBoostRequiredInternal,
         TRUE
     );
 
